@@ -1,0 +1,22 @@
+[project]
+name = "zoro-chatbot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.141.1",
+    "locust>=2.46.6",
+    "mypy>=2.3.1",
+    "ollama>=0.6.2",
+    "psycopg2>=2.9.13",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.15.0",
+    "pydantic[email]>=2.13.5",
+    "python-jose[cryptography]>=3.5.0",
+    "requests>=2.34.2",
+    "sqlalchemy>=2.0.54",
+    "streamlit>=1.64.0",
+    "uvicorn>=0.53.0",
+]
