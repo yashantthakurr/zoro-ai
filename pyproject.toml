@@ -7,9 +7,9 @@ requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
     "fastapi>=0.141.1",
+    "httpx>=0.28.1",
     "locust>=2.46.6",
     "mypy>=2.3.1",
-    "ollama>=0.6.2",
     "psycopg2>=2.9.13",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.15.0",

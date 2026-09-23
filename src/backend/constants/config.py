@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     ALGORITHM: str
     SECRET_KEY: str
     DEBUG: bool = True
+    GROQ_TIMEOUT: float
+    GROQ_API_KEY: str
+    GROQ_MODEL: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

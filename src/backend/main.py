@@ -8,6 +8,7 @@ from sqlalchemy import text
 from typing import Dict
 from src.backend.routers.auth import router as auth_router
 from src.backend.routers.user import router as user_router
+from src.backend.routers.chat import router as chat_router
 
 
 @asynccontextmanager
@@ -55,5 +56,11 @@ app.include_router(
 
 app.include_router(
     router=user_router,
+    prefix=naming.MAIN_API_PREFIX
+)
+
+
+app.include_router(
+    router=chat_router,
     prefix=naming.MAIN_API_PREFIX
 )
