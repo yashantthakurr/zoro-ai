@@ -2,19 +2,19 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-
+from src.backend.dependencies.auth import get_current_user
 from src.backend.dependencies.database import get_db
 from src.backend.models.chat import ChatMessage
 from src.backend.schemas.chat import ChatHistoryResponse, ChatMessageOut, ChatRequest
 from src.backend.services.chat import chat_service
-
-from typing import Dict
+from src.backend.models import User
+from typing import Annotated, Dict
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 @router.post("/send")
-async def send_message(payload: ChatRequest) -> StreamingResponse:
+async def send_message(payload: ChatRequest, user: Annotated[User, Depends(get_current_user)]) -> StreamingResponse:
     return StreamingResponse(
         chat_service.stream_chat_response(
             session_id=payload.session_id,
@@ -26,7 +26,7 @@ async def send_message(payload: ChatRequest) -> StreamingResponse:
 
 
 @router.get("/history/{session_id}", response_model=ChatHistoryResponse)
-def get_history(session_id: str, db: Session = Depends(get_db)) -> ChatHistoryResponse:
+def get_history(user: Annotated[User, Depends(get_current_user)], session_id: str, db: Session = Depends(get_db)) -> ChatHistoryResponse:
     rows = (
         db.query(ChatMessage)
         .filter(ChatMessage.session_id == session_id)
@@ -40,7 +40,7 @@ def get_history(session_id: str, db: Session = Depends(get_db)) -> ChatHistoryRe
 
 
 @router.delete("/history/{session_id}")
-def delete_history(session_id: str, db: Session = Depends(get_db)) -> Dict:
+def delete_history(user: Annotated[User, Depends(get_current_user)], session_id: str, db: Session = Depends(get_db)) -> Dict:
     deleted = (
         db.query(ChatMessage)
         .filter(ChatMessage.session_id == session_id)
