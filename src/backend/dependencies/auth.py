@@ -1,17 +1,15 @@
 
-from src.backend.constants.config import secrets
-from fastapi.security import OAuth2PasswordBearer
 from fastapi import Depends
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from sqlalchemy.orm import Session
-from src.backend.exceptions.auth import INVALID_OR_EXPIRED_TOKEN_EXCEPTION
+from src.backend.constants.config import secrets
 from src.backend.dependencies.database import get_db
-from typing import Annotated
+from src.backend.exceptions.auth import INVALID_OR_EXPIRED_TOKEN_EXCEPTION
 from src.backend.models.user import User
-
+from sqlalchemy.orm import Session
+from typing import Annotated
 
 oauth2scheme = OAuth2PasswordBearer(tokenUrl="/signin")
-
 
 def get_current_user(db: Annotated[Session, Depends(get_db)], token: str = Depends(oauth2scheme)) -> User:
     try:

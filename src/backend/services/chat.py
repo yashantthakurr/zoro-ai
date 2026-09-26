@@ -1,43 +1,38 @@
-import logging
+
 from collections.abc import AsyncGenerator
-from typing import List, Optional
-
-from google import genai
-from google.genai import types
-
 from src.backend.constants.config import secrets
 from src.backend.database.session import SessionLocal
 from src.backend.models.chat import ChatMessage
+from typing import List, Optional
+import httpx
+import json
+import logging
 
 logger = logging.getLogger("chat_service")
-ai_client = genai.Client(api_key=secrets.GEMINI_API_KEY)
 
-# Active production models from your supported key list in priority order
+OPENROUTER_CHAT_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 FALLBACK_MODELS = [
-    "gemini-3.7-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-3.1-flash-lite",
-    "gemini-2.5-flash",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-3.5-haiku",
+    "meta-llama/llama-3.3-70b-instruct",
+    "google/gemini-flash-1.5",
 ]
 
 SYSTEM_INSTRUCTION = (
     "You are an interactive roleplaying companion acting as Roronoa Zoro from One Piece. "
     "Maintain Zoro's direct, confident, and gruff personality in all responses. "
     "When asked your name, who you are, or what you do, answer entirely from Zoro's perspective "
-    "as the swordsman of the Straw Hat Pirates striving to become the world's greatest swordsman."
+    "as the swordsman of the Straw Hat Pirates striving to become the world's greatest swordsman. "
+    "Stay in character at all times: never say you are an AI, a language model, or a product of "
+    "any company, and never mention which underlying model is answering."
 )
 
 FEW_SHOT_TURNS = [
-    {"role": "user", "parts": [{"text": "Who are you?"}]},
+    {"role": "user", "content": "Who are you?"},
     {
-        "role": "model",
-        "parts": [
-            {
-                "text": "I'm Roronoa Zoro. I'm going to be the world's greatest swordsman. What do you want?"
-            }
-        ],
+        "role": "assistant",
+        "content": "I'm Roronoa Zoro. I'm going to be the world's greatest swordsman. What do you want?",
     },
 ]
 
@@ -46,6 +41,7 @@ FALLBACK_ERROR_MESSAGE = (
     "Give it a few seconds and ask me again."
 )
 
+REQUEST_TIMEOUT = httpx.Timeout(getattr(secrets, "OPENROUTER_TIMEOUT", 60.0))
 
 class ChatService:
 
@@ -88,65 +84,88 @@ class ChatService:
         finally:
             db.close()
 
+    async def _stream_one_model(
+        self, client: httpx.AsyncClient, model: str, messages: List[dict]
+    ) -> AsyncGenerator[str, None]:
+
+        headers = {
+            "Authorization": f"Bearer {secrets.OPEN_ROUTER_API_KEY}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/yashantthakurr/zoro-ai",
+            "X-Title": "Zoro AI",
+        }
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": True,
+            "temperature": 0.7,
+        }
+
+        async with client.stream("POST", OPENROUTER_CHAT_URL, headers=headers, json=payload) as response:
+            response.raise_for_status()
+            async for line in response.aiter_lines():
+                if not line or not line.startswith("data:"):
+                    continue
+
+                data = line[len("data:"):].strip()
+                if data == "[DONE]":
+                    break
+
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+
+                choices = chunk.get("choices") or []
+                if not choices:
+                    continue
+
+                delta = choices[0].get("delta") or {}
+                content = delta.get("content")
+                if content:
+                    yield content
+
     async def stream_chat_response(
         self, session_id: str, message: str, model: Optional[str] = None
     ) -> AsyncGenerator[str, None]:
         history = self.get_history(session_id)
         self._save_message(session_id, "user", message)
 
-        gemini_contents = []
+        messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
+
         if not history:
-            gemini_contents.extend(FEW_SHOT_TURNS)
+            messages.extend(FEW_SHOT_TURNS)
         else:
             for m in history:
-                gemini_contents.append(
-                    {
-                        "role": "model" if m.role == "assistant" else "user",
-                        "parts": [{"text": m.content}],
-                    }
-                )
+                messages.append({"role": m.role, "content": m.content})
 
-        gemini_contents.append({"role": "user", "parts": [{"text": message}]})
+        messages.append({"role": "user", "content": message})
 
-        primary_model = model or getattr(secrets, "GEMINI_MODEL", "gemini-3.7-flash")
+        primary_model = model or getattr(secrets, "OPENROUTER_MODEL", FALLBACK_MODELS[0])
         models_to_try = [primary_model] + [m for m in FALLBACK_MODELS if m != primary_model]
-
-        generation_config = types.GenerateContentConfig(
-            system_instruction=SYSTEM_INSTRUCTION,
-            temperature=0.7,
-            automatic_function_calling=types.AutomaticFunctionCallingConfig(
-                disable=True
-            ),
-        )
 
         full_reply = ""
 
         try:
-            for current_model in models_to_try:
-                try:
-                    response = await ai_client.aio.models.generate_content_stream(
-                        model=current_model,
-                        contents=gemini_contents,
-                        config=generation_config,
-                    )
-                    async for chunk in response:
-                        if chunk.text:
-                            full_reply += chunk.text
-                            yield chunk.text
+            async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
+                for current_model in models_to_try:
+                    try:
+                        async for chunk in self._stream_one_model(client, current_model, messages):
+                            full_reply += chunk
+                            yield chunk
 
-                    # If text was produced, we are done
-                    if full_reply:
+                        # If text was produced, we are done
+                        if full_reply:
+                            break
+
+                    except Exception as e:
+                        logger.warning(f"Model {current_model} failed: {e}")
+
+                        if not full_reply and current_model != models_to_try[-1]:
+                            continue
                         break
 
-                except Exception as e:
-                    logger.warning(f"Model {current_model} failed: {e}")
-
-                    # If no output was yielded yet, continue to the next model
-                    if not full_reply and current_model != models_to_try[-1]:
-                        continue
-                    break
-
-            # Guarantee that a response is always emitted
             if not full_reply:
                 full_reply = FALLBACK_ERROR_MESSAGE
                 yield full_reply
@@ -154,6 +173,5 @@ class ChatService:
         finally:
             if full_reply:
                 self._save_message(session_id, "assistant", full_reply)
-
 
 chat_service = ChatService()

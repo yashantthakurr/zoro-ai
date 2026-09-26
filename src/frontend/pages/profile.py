@@ -1,7 +1,8 @@
 
 from navigation import signin_page
-import streamlit as st
+from src.backend.constants.config import secrets
 import requests
+import streamlit as st
 import time
 
 
@@ -11,24 +12,18 @@ st.title("Zoro AI | Profile")
 
 st.divider()
 
-
-PROFILE_URL = "http://localhost:8000/api/v1/users/me"
-
+PROFILE_URL = f"{secrets.BACKEND_BASE_URL}/users/me"
 
 def get_headers():
-
-    return {"Authorization": f"Bearer {st.session_state.get("access_token")}"}
-
+    return {"Authorization": f"Bearer {st.session_state.get('access_token')}"}
 
 def get_profile():
-
-    response = requests.get(url=PROFILE_URL, headers=get_headers())
+    response = requests.get(url=PROFILE_URL, headers=get_headers(), timeout=10)
 
     if response.status_code == 200:
         return response.json()
 
     if response.status_code == 401:
-
         st.session_state["access_token"] = None
         st.session_state["authenticated"] = False
 
@@ -39,7 +34,6 @@ def get_profile():
 
 
 try:
-
     profile = get_profile()
 
     if profile:
@@ -54,7 +48,6 @@ try:
         if not st.session_state.get("editing_profile", False):
 
             if st.button("Update Profile", use_container_width=True):
-
                 st.session_state["editing_profile"] = True
                 st.rerun()
 
@@ -68,7 +61,6 @@ try:
             current_password = st.text_input("Current Password *", type="password", max_chars=64)
 
             st.info("Updating the profile will expire the current session and you will have to signin again.")
-
 
             if st.button("Save Changes", use_container_width=True, type="primary"):
                 if not username or len(username) < 4:
@@ -94,27 +86,33 @@ try:
                     else:
                         body["current_password"] = current_password
 
-                        with st.spinner("Updating profile. Please wait..."):
-                            res = requests.patch(url=PROFILE_URL, headers=get_headers(), json=body)
+                        try:
+                            with st.spinner("Updating profile. Please wait..."):
+                                res = requests.patch(
+                                    url=PROFILE_URL, headers=get_headers(), json=body, timeout=10
+                                )
 
-                        if res.status_code == 200:
-                            st.success("Profile updated successfully! Logging out and redirecting to Signin page...")
-                            time.sleep(1.5)
-                            st.session_state["editing_profile"] = False
-                            st.session_state["access_token"] = None
-                            st.session_state["authenticated"] = False
-                            st.switch_page(signin_page)
+                            if res.status_code == 200:
+                                st.success("Profile updated successfully! Logging out and redirecting to Signin page...")
+                                time.sleep(1)
+                                st.session_state.clear()
+                                st.switch_page(signin_page)
+                            else:
+                                try:
+                                    st.warning(res.json().get("detail"))
+                                except requests.exceptions.JSONDecodeError:
+                                    st.error("Failed to update profile.")
 
-                        else:
-                            try:
-                                st.warning(res.json().get("detail"))
-                            except requests.exceptions.JSONDecodeError:
-                                st.error("Failed to update profile.")
+                        except requests.exceptions.Timeout:
+                            st.error("The server took too long to respond. Try again later.")
+                        except requests.exceptions.ConnectionError:
+                            st.error("Could not contact the server at the moment. Try again later.")
 
             if st.button("Cancel", use_container_width=True):
                 st.session_state["editing_profile"] = False
                 st.rerun()
 
+except requests.exceptions.Timeout:
+    st.error("The server took too long to respond. Try again later.")
 except requests.exceptions.ConnectionError:
-
     st.error("Could not contact the server at the moment. Try again later.")

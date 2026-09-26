@@ -2,12 +2,11 @@
 from src.backend.auth import security
 from src.backend.exceptions import auth as auth_exceptions
 from src.backend.exceptions import user as user_exceptions
-from src.backend.roles.user import UserRole
 from src.backend.models.user import User
+from src.backend.roles.user import UserRole
 from src.backend.schemas.user import UserSignup, UserSignin
 from sqlalchemy.orm import Session
 from typing import Dict
-
 
 def create_new_user(db: Session, data: UserSignup) -> User:
     if db.query(User).filter(User.email==data.email).first():
@@ -24,7 +23,6 @@ def create_new_user(db: Session, data: UserSignup) -> User:
     db.commit()
     db.refresh(user)
     return user
-
 
 def authenticate_user(db: Session, data: UserSignin) -> Dict[str, str]:
     user = db.query(User).filter(User.username==data.username).first()

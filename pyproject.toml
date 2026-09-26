@@ -1,16 +1,14 @@
 [project]
-name = "zoro-chatbot"
+name = "zoro-ai"
 version = "0.1.0"
-description = "Add your description here"
+description = "Zoro AI built purely in Python(FastAPI) + PostgreSQL(Supabase) + OpenRouter"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.20.0",
     "fastapi>=0.141.1",
-    "google-genai>=2.25.0",
     "httpx>=0.28.1",
-    "locust>=2.46.6",
     "mypy>=2.3.1",
+    "openai>=3.19.2",
     "psycopg2>=2.9.13",
     "pwdlib[argon2]>=0.3.1",
     "pydantic-settings>=2.15.0",

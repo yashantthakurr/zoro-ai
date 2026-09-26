@@ -8,8 +8,12 @@ class Settings(BaseSettings):
     ALGORITHM: str
     SECRET_KEY: str
     DEBUG: bool = True
-    GEMINI_API_KEY: str
-    GEMINI_MODEL: str
+    OPEN_ROUTER_MODEL: str
+    OPEN_ROUTER_API_KEY: str
+    ADMIN_EMAIL: str
+    ADMIN_USERNAME: str
+    ADMIN_PASSWORD: str
+    BACKEND_BASE_URL: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

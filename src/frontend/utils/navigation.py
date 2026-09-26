@@ -2,12 +2,13 @@
 import streamlit as st
 
 signin_page = st.Page(
-    "pages/signin.py", 
-    title="Signin"
+    "pages/signin.py",
+    title="Signin",
+    default=True
 )
 
 signup_page = st.Page(
-    "pages/signup.py", 
+    "pages/signup.py",
     title="Signup"
 )
 
@@ -17,12 +18,12 @@ profile_page = st.Page(
 )
 
 chat_page = st.Page(
-    "pages/chat.py", 
+    "pages/chat.py",
     title="Chat"
 )
 
 logout_page = st.Page(
-    "pages/logout.py", 
+    "pages/logout.py",
     title="Logout"
 )
 

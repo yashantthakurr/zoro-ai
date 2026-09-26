@@ -1,7 +1,6 @@
 
-import streamlit as st
-
-from navigation import (
+from pathlib import Path
+from utils.navigation import (
     signin_page,
     signup_page,
     profile_page,
@@ -9,24 +8,17 @@ from navigation import (
     logout_page,
     admin_page
 )
+import streamlit as st
+import sys
 
-if st.session_state.get("authenticated", False):
-    if st.session_state.get("role") == "admin":
-        pg = st.navigation(
-            {
-                "Account": [profile_page, logout_page],
-                "Activity": [chat_page, admin_page]
-            }
-        )
-    else:
-        pg = st.navigation(
-            {
-                "Account": [profile_page, logout_page],
-                "Activity": [chat_page]
-            }
-        )
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
-else:
-    pg = st.navigation([signin_page, signup_page])
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+pg = st.navigation(
+    [signin_page, signup_page, profile_page, chat_page, logout_page, admin_page],
+    position="hidden",
+)
 
 pg.run()

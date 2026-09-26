@@ -14,3 +14,6 @@ wheels/
 
 # Mypy cache
 .mypy_cache/
+
+# Server file
+server.py

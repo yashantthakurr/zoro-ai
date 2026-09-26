@@ -1,16 +1,20 @@
 
-import streamlit as st
+from src.backend.constants.config import secrets
+from utils.menu import redirect_if_authenticated
+from utils.navigation import signup_page, chat_page
 import requests
-from navigation import signup_page, chat_page
+import streamlit as st
 import time
 
-st.set_page_config(page_title="Zoro AI | Signin")
+st.set_page_config(page_title="Zoro AI | Signin", page_icon="⚔️")
+
+redirect_if_authenticated()
 
 st.title("Zoro AI | Signin to your account")
 
 st.divider()
 
-SIGNIN_URL = "http://localhost:8000/api/v1/auth/signin"
+SIGNIN_URL = f"{secrets.BACKEND_BASE_URL}/auth/signin"
 
 username = st.text_input(label="Username", max_chars=24)
 password = st.text_input(label="Password", type="password", max_chars=64)
@@ -25,17 +29,21 @@ if st.button("Signin", use_container_width=True, type="primary"):
     else:
         try:
             with st.spinner("Signing you in. Please wait..."):
-                response = requests.post(url=SIGNIN_URL, json={"username": username, "password": password})
+                response = requests.post(url=SIGNIN_URL, json={"username": username, "password": password}, timeout=10)
                 if response.status_code==200:
                     st.success("Signed in successfully! Redirecting to chat page...")
                     st.session_state["access_token"] = response.json().get("access_token")
                     st.session_state["username"] = response.json().get("username")
                     st.session_state["role"] = response.json().get("role")
                     st.session_state["authenticated"] = True
-                    time.sleep(1.5)
+                    time.sleep(1)
                     st.switch_page(chat_page)
                 else:
                     st.warning(response.json().get("detail"))
+
+        except requests.exceptions.Timeout:
+            st.error("The server took too long to respond. Try again later.")
+
         except requests.exceptions.ConnectionError:
             st.error("Could not contact the server at the moment. Try again later.")
 
