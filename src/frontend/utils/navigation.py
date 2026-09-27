@@ -1,10 +1,15 @@
 
 import streamlit as st
 
+landing_page = st.Page(
+    page="pages/landing.py",
+    title="Zoro AI",
+    default=True
+)
+
 signin_page = st.Page(
     "pages/signin.py",
-    title="Signin",
-    default=True
+    title="Signin"
 )
 
 signup_page = st.Page(

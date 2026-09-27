@@ -1,7 +1,7 @@
 
 from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
-from typing import List, Literal, Optional
+from typing import List, Literal
 
 class ChatMessageOut(BaseModel):
 
@@ -14,11 +14,9 @@ class ChatMessageOut(BaseModel):
 class ChatRequest(BaseModel):
 
     session_id: str = Field(...)
-    message: str = Field(..., min_length=1)
-    model: Optional[str] = Field(None)
+    message: str = Field(..., min_length=1, max_length=3000)
 
 class ChatHistoryResponse(BaseModel):
 
     session_id: str
     messages: List[ChatMessageOut]
-

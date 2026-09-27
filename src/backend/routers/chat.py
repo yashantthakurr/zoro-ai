@@ -20,8 +20,7 @@ async def send_message(payload: ChatRequest, user: Annotated[User, Depends(get_c
     return StreamingResponse(
         chat_service.stream_chat_response(
             session_id=payload.session_id,
-            message=payload.message,
-            model=payload.model,
+            message=payload.message
         ),
         media_type="text/plain",
     )

@@ -7,13 +7,13 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     ALGORITHM: str
     SECRET_KEY: str
-    DEBUG: bool = True
+    DEBUG: bool = False
     OPEN_ROUTER_MODEL: str
     OPEN_ROUTER_API_KEY: str
     ADMIN_EMAIL: str
     ADMIN_USERNAME: str
     ADMIN_PASSWORD: str
-    BACKEND_BASE_URL: str
+    ZORO_API_BASE_URL: str
 
     model_config = SettingsConfigDict(
         env_file=".env",

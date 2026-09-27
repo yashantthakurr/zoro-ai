@@ -1,12 +1,12 @@
 
-from src.backend.constants.config import secrets
+from utils.config import API_BASE_URL
 from utils.menu import redirect_if_authenticated
 from utils.navigation import signup_page, chat_page
 import requests
 import streamlit as st
 import time
 
-st.set_page_config(page_title="Zoro AI | Signin", page_icon="⚔️")
+st.set_page_config(page_title="Zoro AI | Signin", page_icon="⚔️", layout="centered")
 
 redirect_if_authenticated()
 
@@ -14,12 +14,12 @@ st.title("Zoro AI | Signin to your account")
 
 st.divider()
 
-SIGNIN_URL = f"{secrets.BACKEND_BASE_URL}/auth/signin"
+SIGNIN_URL = f"{API_BASE_URL}/auth/signin"
 
 username = st.text_input(label="Username", max_chars=24)
 password = st.text_input(label="Password", type="password", max_chars=64)
 
-if st.button("Signin", use_container_width=True, type="primary"):
+if st.button("Signin", width="stretch", type="primary"):
     if not username or not password:
         st.warning("All fields are required.")
     elif len(username) < 4:

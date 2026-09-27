@@ -1,25 +1,33 @@
 
-from src.backend.constants.config import secrets
+from pathlib import Path
+from utils.config import API_BASE_URL
 from typing import Dict, List
+from utils.menu import (
+    menu,
+    redirect_if_unauthenticated
+)
+from utils.navigation import signin_page
 import requests
 import streamlit as st
 
-st.set_page_config(page_title="Zoro AI", page_icon="⚔️")
+st.set_page_config(page_title="Zoro AI | Chat", page_icon="⚔️", layout="centered")
+
+redirect_if_unauthenticated()
+menu()
+
+ZORO_AVATAR_PATH = Path(__file__).parent.parent / "assets" / "zoro.png"
+ASSISTANT_AVATAR = str(ZORO_AVATAR_PATH) if ZORO_AVATAR_PATH.exists() else "🗡️"
 
 username = st.session_state.get("username")
 token = st.session_state.get("access_token")
 
-CHAT_BASE_URL = f"{secrets.BACKEND_BASE_URL}/chat"
+CHAT_BASE_URL = f"{API_BASE_URL}/chat"
 
 def handle_session_expired():
-    st.session_state.pop("token", None)
-    st.session_state.pop("access_token", None)
+    st.session_state.clear()
     st.error("⚠️ Your session has expired. Please sign in again to continue.")
-    if st.button("Go to Sign In", type="primary", use_container_width=True):
-        try:
-            st.switch_page("pages/signin.py")
-        except Exception:
-            st.rerun()
+    if st.button("Go to Sign In", type="primary", width="stretch"):
+        st.switch_page(signin_page)
     st.stop()
 
 if not username or not token:
@@ -88,20 +96,21 @@ if "messages" not in st.session_state:
 
 with st.sidebar:
     st.subheader("Options")
-    if st.button("Clear Conversation", use_container_width=True):
+    if st.button("Clear Conversation", width="stretch"):
         clear_conversation()
 
 for message in st.session_state.messages:
     if message.get("content") and str(message["content"]).strip():
-        with st.chat_message(message["role"]):
+        avatar = ASSISTANT_AVATAR if message["role"] == "assistant" else None
+        with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-if prompt := st.chat_input("Say something to Zoro..."):
+if prompt := st.chat_input("Say something to Zoro...", max_chars=3000):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    with st.chat_message("assistant"):
+    with st.chat_message("assistant", avatar=ASSISTANT_AVATAR):
         response = ""
         try:
             response = st.write_stream(stream_reply(prompt))

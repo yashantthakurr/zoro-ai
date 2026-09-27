@@ -19,12 +19,18 @@ class UserSignin(BaseModel):
     username: str = Field(..., min_length=4, max_length=24)
     password: str = Field(..., min_length=8, max_length=64)
 
-class UserUpdate(BaseModel):
+class SelfUserUpdate(BaseModel):
 
     email: Optional[EmailStr] = Field(None, max_length=254)
     username: Optional[str] = Field(None, min_length=4, max_length=24)
     new_password: Optional[str] = Field(None, min_length=8, max_length=64)
-    current_password: Optional[str] = Field(..., min_length=8, max_length=64)
+    current_password: str = Field(..., min_length=8, max_length=64)
+
+class AdminUserUpdate(BaseModel):
+
+    email: Optional[EmailStr] = Field(None, max_length=254)
+    username: Optional[str] = Field(None, min_length=4, max_length=24)
+    new_password: Optional[str] = Field(None, min_length=8, max_length=64)
 
 class UserResponse(BaseModel):
 

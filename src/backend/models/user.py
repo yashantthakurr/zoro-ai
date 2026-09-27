@@ -2,7 +2,11 @@
 from datetime import datetime
 from src.backend.database.base import Base
 from sqlalchemy import DateTime, func, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from typing import List, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.backend.models.chat import ChatMessage
 
 class User(Base):
 
@@ -50,4 +54,16 @@ class User(Base):
         server_onupdate=func.current_timestamp(),
         onupdate=func.current_timestamp(),
         nullable=True
+    )
+
+    # cascade="all, delete-orphan" makes db.delete(user) also delete their
+    # messages via the ORM; passive_deletes=True defers to the database's
+    # own ON DELETE CASCADE (set on the FK in ChatMessage) instead of
+    # SQLAlchemy loading and deleting each row one-by-one -- the two work
+    # together, not against each other.
+    messages: Mapped[List["ChatMessage"]] = relationship(
+        "ChatMessage",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )

@@ -1,24 +1,25 @@
 # 🤖 Zoro AI
 
-**Zoro AI** is a full-stack AI chatbot application built with **FastAPI** and **Streamlit**, featuring secure user authentication, persistent user data, and integration with a locally hosted Large Language Model (LLM).
+**Zoro AI** is a full-stack AI chatbot application built with **FastAPI** and **Streamlit**, featuring secure JWT authentication, persistent per-user chat history, a role-based admin dashboard, and an AI backend powered by **OpenRouter** — all while staying in character as Roronoa Zoro.
 
-The project focuses on building an AI-powered application while applying real-world backend development practices such as REST API design, authentication, database management, migrations, and API load testing.
+The project focuses on real-world backend development practices: REST API design, authentication, database modeling, migrations, rate limiting, and layered application architecture.
 
 ---
 
 ## ✨ Features
 
-* 🤖 AI-powered conversational chatbot
+* 🤖 AI-powered conversational chatbot, always in character as Zoro
 * 🔐 JWT-based authentication
 * 🔑 Secure password hashing using Argon2
-* 👤 User registration and authentication
-* 🛡️ Protected API endpoints
-* 💬 Chat interface built with Streamlit
-* 🗄️ PostgreSQL database integration
+* 👤 User registration, signin, and self-service profile management
+* 🛡️ Role-based access control (user / admin), with an admin dashboard for managing accounts
+* 💬 Streaming chat interface built with Streamlit
+* 🗄️ Supabase database integration
 * 🧩 SQLAlchemy ORM for database operations
 * 🔄 Alembic database migrations
 * ⚡ FastAPI REST API backend
-* 📊 API load testing with Locust
+* 🚦 Per-endpoint rate limiting on auth routes
+* ❤️ Health-check endpoint for uptime monitoring
 * ⚙️ Environment-based configuration
 * 🧱 Layered backend architecture
 
@@ -31,7 +32,8 @@ The project focuses on building an AI-powered application while applying real-wo
                     │    Streamlit UI     │
                     │                     │
                     │  Signup / Signin    │
-                    │  Chat / Profile     │
+                    │  Chat / Profile /   │
+                    │  Admin Dashboard    │
                     └──────────┬──────────┘
                                │
                          REST API / JWT
@@ -51,9 +53,9 @@ The project focuses on building an AI-powered application while applying real-wo
                  │                           │
                  ▼                           ▼
         ┌─────────────────┐       ┌─────────────────┐
-        │   PostgreSQL    │       │   Local LLM     │
-        │                 │       │                 │
-        │ Users / Data    │       │ AI Responses    │
+        │   PostgreSQL    │       │   OpenRouter    │
+        │                 │       │      API        │
+        │ Users / Chats   │       │ AI Responses    │
         └─────────────────┘       └─────────────────┘
 ```
 
@@ -69,6 +71,7 @@ The project focuses on building an AI-powered application while applying real-wo
 * **Alembic**
 * **Pydantic**
 * **Uvicorn**
+* **slowapi** (rate limiting)
 
 ### Authentication & Security
 
@@ -78,7 +81,7 @@ The project focuses on building an AI-powered application while applying real-wo
 
 ### Database
 
-* **PostgreSQL**
+* **Supabase**
 * **SQLAlchemy ORM**
 * **Alembic migrations**
 
@@ -88,13 +91,8 @@ The project focuses on building an AI-powered application while applying real-wo
 
 ### AI
 
-* **Local LLM integration**
-* **Ollama**
-
-### Testing & Performance
-
-* **Locust**
-* **HTTPX**
+* **OpenRouter API** (model-agnostic LLM access, with automatic fallback across models)
+* **HTTPX** (async streaming client)
 
 ### Development Tools
 
@@ -109,18 +107,21 @@ The project focuses on building an AI-powered application while applying real-wo
 ```text
 zoro-ai/
 │
-├── migrations/
-│   └── ...                    # Alembic migrations
+├── migrations/                 # Alembic migrations
 │
 ├── src/
-│   └── ...
+│   ├── backend/                 # FastAPI application
+│   │   ├── main.py              # API entry point
+│   │   └── ...
+│   └── frontend/                # Streamlit application
+│       ├── app.py               # Frontend entry point
+│       └── ...
 │
-├── .env.example               # Environment variable template
+├── .env.example                 # Environment variable template
 ├── .gitignore
-├── alembic.ini                # Alembic configuration
-├── pyproject.toml              # Project configuration & dependencies
-├── server.py                   # FastAPI application entry point
-├── uv.lock                     # Locked dependencies
+├── alembic.ini                  # Alembic configuration
+├── pyproject.toml                # Project configuration & dependencies
+├── uv.lock                        # Locked dependencies
 └── README.md
 ```
 
@@ -221,20 +222,30 @@ On Windows PowerShell:
 Copy-Item .env.example .env
 ```
 
-Configure the required values in `.env`, including your database connection and JWT configuration.
-
-Example:
+Example values:
 
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/zoro_ai
 
-JWT_SECRET=your-secret-key
-JWT_ALGORITHM=HS256
-JWT_EXPIRATION=30
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+ALGORITHM=HS256
+SECRET_KEY=your-secret-key
 
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=your-model
+DEBUG=false
+
+OPEN_ROUTER_API_KEY=your-openrouter-api-key
+OPEN_ROUTER_MODEL=openai/gpt-4o-mini
+
+ADMIN_EMAIL=admin@example.com
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=choose-a-strong-password
+
+ZORO_API_BASE_URL=http://localhost:8000/api/v1
 ```
+
+* `DEBUG` controls whether the interactive API docs (`/docs`, `/redoc`) are exposed — keep it `false` outside local development.
+* `ADMIN_EMAIL` / `ADMIN_USERNAME` / `ADMIN_PASSWORD` seed the first admin account on startup, if that username doesn't already exist.
+* `ZORO_API_BASE_URL` is read only by the Streamlit frontend, to know where to reach the API.
 
 > Do not commit your `.env` file or real secrets to GitHub.
 
@@ -264,27 +275,15 @@ uv run alembic upgrade head
 
 ---
 
-## 🧠 Ollama Setup
+## 🧠 OpenRouter Setup
 
-Zoro AI is designed to use a locally hosted LLM through **Ollama**.
+Zoro AI uses **OpenRouter** to access LLMs without depending on a single provider.
 
-Install Ollama from:
+1. Create an account at [openrouter.ai](https://openrouter.ai/) and generate an API key.
+2. Set `OPEN_ROUTER_API_KEY` in your `.env` to that key.
+3. Set `OPEN_ROUTER_MODEL` to the model slug you want as the primary model (browse available models and their current slugs at [openrouter.ai/models](https://openrouter.ai/models) — for example, `openai/gpt-4o-mini`).
 
-https://ollama.com/
-
-Then download the model you want to use:
-
-```bash
-ollama pull <model-name>
-```
-
-Start Ollama if it is not already running:
-
-```bash
-ollama serve
-```
-
-Make sure the model configured in your `.env` matches the model installed locally.
+If the primary model fails to respond, the backend automatically falls back through a short list of alternative models before giving up.
 
 ---
 
@@ -293,7 +292,7 @@ Make sure the model configured in your `.env` matches the model installed locall
 ### Start the FastAPI backend
 
 ```bash
-uv run uvicorn server:app --reload
+uv run uvicorn src.backend.main:app --reload
 ```
 
 The API will be available at:
@@ -302,10 +301,16 @@ The API will be available at:
 http://127.0.0.1:8000
 ```
 
-FastAPI's interactive API documentation:
+FastAPI's interactive API documentation (only available when `DEBUG=true`):
 
 ```text
 http://127.0.0.1:8000/docs
+```
+
+A basic health check is always available at:
+
+```text
+http://127.0.0.1:8000/health
 ```
 
 ### Start the Streamlit frontend
@@ -313,7 +318,7 @@ http://127.0.0.1:8000/docs
 In another terminal:
 
 ```bash
-uv run streamlit run src/app.py
+uv run streamlit run src/frontend/app.py
 ```
 
 The Streamlit application will open in your browser.
@@ -322,7 +327,7 @@ The Streamlit application will open in your browser.
 
 ## 🧪 API Testing
 
-The FastAPI backend provides interactive API documentation through Swagger UI:
+With `DEBUG=true`, the FastAPI backend provides interactive API documentation through Swagger UI:
 
 ```text
 http://127.0.0.1:8000/docs
@@ -331,28 +336,6 @@ http://127.0.0.1:8000/docs
 You can use it to test authentication and protected endpoints without requiring an external API client.
 
 Postman can also be used for manual API testing.
-
----
-
-## 📊 Load Testing
-
-Zoro AI includes **Locust** for testing API performance under concurrent requests.
-
-Start Locust with:
-
-```bash
-uv run locust
-```
-
-Then open:
-
-```text
-http://localhost:8089
-```
-
-Configure the target API host and number of concurrent users from the Locust interface.
-
-This allows the backend to be evaluated under simulated concurrent traffic.
 
 ---
 
@@ -377,8 +360,8 @@ This allows the backend to be evaluated under simulated concurrent traffic.
                 │                   │
                 ▼                   ▼
         ┌──────────────┐    ┌──────────────┐
-        │ PostgreSQL   │    │  Local LLM   │
-        │              │    │   Ollama     │
+        │ PostgreSQL   │    │  OpenRouter  │
+        │              │    │     API      │
         └──────────────┘    └──────────────┘
 ```
 
@@ -394,10 +377,11 @@ This project was built to gain practical experience in:
 * Database modeling with SQLAlchemy
 * Managing database schema changes with Alembic
 * Connecting a frontend application to a backend API
-* Integrating locally hosted LLMs
+* Integrating a third-party LLM API with automatic model fallback
+* Rate limiting sensitive endpoints
+* Building role-based access control and an admin dashboard
 * Managing authentication state in a frontend
 * Structuring a backend application into maintainable modules
-* Load testing APIs with Locust
 * Managing Python dependencies with `uv`
 
 ---
@@ -406,12 +390,8 @@ This project was built to gain practical experience in:
 
 Potential improvements include:
 
-* [ ] Conversation history and chat persistence
-* [ ] Streaming LLM responses
-* [ ] Multiple conversation sessions
+* [ ] Multiple conversation sessions per user
 * [ ] Token usage tracking
-* [ ] Improved error handling
-* [ ] API rate limiting
 * [ ] Redis-based caching
 * [ ] Dockerized deployment
 * [ ] Automated testing with Pytest
@@ -424,7 +404,7 @@ Potential improvements include:
 
 **Active Development**
 
-Zoro AI is a learning-focused project designed around modern backend development and local AI integration.
+Zoro AI is a learning-focused project designed around modern backend development and real-world AI integration.
 
 ---
 

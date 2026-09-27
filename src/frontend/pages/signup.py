@@ -1,24 +1,24 @@
 
-from src.backend.constants.config import secrets
+from utils.config import API_BASE_URL
 from utils.menu import redirect_if_authenticated
 from utils.navigation import signin_page
 import requests
 import streamlit as st
 import time
 
-st.set_page_config(page_title="Zoro AI | Signup")
+st.set_page_config(page_title="Zoro AI | Signup", layout="centered", page_icon="⚔️")
 
 st.title("Zoro AI | Create new account")
 
 st.divider()
 
-SIGNUP_URL = f"{secrets.BACKEND_BASE_URL}/auth/signup"
+SIGNUP_URL = f"{API_BASE_URL}/auth/signup"
 
 email = st.text_input(label="E-mail", type="email", max_chars=254)
 username = st.text_input(label="Username", max_chars=24)
 password = st.text_input(label="Password", type="password", max_chars=64)
 
-if st.button("Signup", use_container_width=True, type="primary"):
+if st.button("Signup", width="stretch", type="primary"):
     if not email or not username or not password:
         st.warning("All fields are required.")
     elif len(username) < 4:

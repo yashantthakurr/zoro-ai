@@ -1,37 +1,37 @@
 
-from navigation import signin_page
-from src.backend.constants.config import secrets
+from utils.config import API_BASE_URL
+from utils.navigation import signin_page
+from utils.menu import (
+    menu,
+    redirect_if_unauthenticated
+)
 import requests
 import streamlit as st
 import time
 
+st.set_page_config(page_title="Zoro AI | Profile", page_icon="⚔️", layout="centered")
 
-st.set_page_config(page_title="Zoro AI | Profile")
+redirect_if_unauthenticated()
+menu()
 
 st.title("Zoro AI | Profile")
 
 st.divider()
 
-PROFILE_URL = f"{secrets.BACKEND_BASE_URL}/users/me"
+PROFILE_URL = f"{API_BASE_URL}/users/me"
 
 def get_headers():
     return {"Authorization": f"Bearer {st.session_state.get('access_token')}"}
 
 def get_profile():
     response = requests.get(url=PROFILE_URL, headers=get_headers(), timeout=10)
-
     if response.status_code == 200:
         return response.json()
-
     if response.status_code == 401:
-        st.session_state["access_token"] = None
-        st.session_state["authenticated"] = False
-
+        st.session_state.clear()
         st.warning("Your session has expired. Please signin again.")
         st.switch_page(signin_page)
-
     return None
-
 
 try:
     profile = get_profile()
@@ -47,7 +47,7 @@ try:
 
         if not st.session_state.get("editing_profile", False):
 
-            if st.button("Update Profile", use_container_width=True):
+            if st.button("Update Profile", width="stretch"):
                 st.session_state["editing_profile"] = True
                 st.rerun()
 
@@ -62,7 +62,7 @@ try:
 
             st.info("Updating the profile will expire the current session and you will have to signin again.")
 
-            if st.button("Save Changes", use_container_width=True, type="primary"):
+            if st.button("Save Changes", width="stretch", type="primary"):
                 if not username or len(username) < 4:
                     st.warning("Username must be at least 4 characters.")
                 elif new_password and len(new_password) < 8:
@@ -108,7 +108,7 @@ try:
                         except requests.exceptions.ConnectionError:
                             st.error("Could not contact the server at the moment. Try again later.")
 
-            if st.button("Cancel", use_container_width=True):
+            if st.button("Cancel", width="stretch"):
                 st.session_state["editing_profile"] = False
                 st.rerun()
 

@@ -6,7 +6,7 @@ from src.backend.dependencies.database import get_db
 from src.backend.exceptions.auth import NOT_AUTHORIZED_FOR_ADMIN_ENDPOINTS_EXCEPTION
 from src.backend.models.user import User
 from src.backend.roles.user import UserRole
-from src.backend.schemas.user import UserResponse, UserUpdate
+from src.backend.schemas.user import UserResponse, SelfUserUpdate, AdminUserUpdate
 from src.backend.services import user as user_service
 from sqlalchemy.orm import Session
 from typing import Annotated, List
@@ -21,7 +21,7 @@ async def self_get(user: Annotated[User, Depends(get_current_user)]) -> User:
     return user
 
 @router.patch("/me", response_model=UserResponse, status_code=status.HTTP_200_OK)
-async def self_update(db: Annotated[Session, Depends(get_db)], user: Annotated[User, Depends(get_current_user)], data: UserUpdate) -> User:
+async def self_update(db: Annotated[Session, Depends(get_db)], user: Annotated[User, Depends(get_current_user)], data: SelfUserUpdate) -> User:
     return user_service.self_update_user(db, user, data)
 
 @router.delete("/me", response_model=None, status_code=status.HTTP_204_NO_CONTENT)
@@ -41,7 +41,7 @@ async def get_user_by_id(id: int, db: Annotated[Session, Depends(get_db)], curre
     return user_service.fetch_user_by_id(db, id)
 
 @router.patch("/{id}", response_model=UserResponse, status_code=status.HTTP_200_OK)
-async def update_user_by_id(id: int, data: UserUpdate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User, Depends(get_current_user)]) -> User:
+async def update_user_by_id(id: int, data: AdminUserUpdate, db: Annotated[Session, Depends(get_db)], current_user: Annotated[User, Depends(get_current_user)]) -> User:
     if current_user.role != UserRole.ADMIN:
         raise NOT_AUTHORIZED_FOR_ADMIN_ENDPOINTS_EXCEPTION
     return user_service.update_user_by_id(db, id, data)

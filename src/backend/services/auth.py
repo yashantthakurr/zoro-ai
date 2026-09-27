@@ -9,13 +9,13 @@ from sqlalchemy.orm import Session
 from typing import Dict
 
 def create_new_user(db: Session, data: UserSignup) -> User:
-    if db.query(User).filter(User.email==data.email).first():
+    if db.query(User).filter(User.email==data.email.lower()).first():
         raise user_exceptions.EMAIL_ALREADY_TAKEN_EXCEPTION
-    if db.query(User).filter(User.username==data.username).first():
+    if db.query(User).filter(User.username==data.username.lower()).first():
         raise user_exceptions.USERNAME_ALREADY_TAKEN_EXCEPTION
     user = User(
-        email=data.email,
-        username=data.username,
+        email=data.email.lower().strip(),
+        username=data.username.lower().strip(),
         hashed_password=security.hash_password(data.password),
         role=UserRole.USER
     )
@@ -25,8 +25,8 @@ def create_new_user(db: Session, data: UserSignup) -> User:
     return user
 
 def authenticate_user(db: Session, data: UserSignin) -> Dict[str, str]:
-    user = db.query(User).filter(User.username==data.username).first()
-    if not user or not security.verify_passowrd(data.password, user.hashed_password):
+    user = db.query(User).filter(User.username==data.username.strip()).first()
+    if not user or not security.verify_passowrd(data.password.strip(), user.hashed_password):
         raise auth_exceptions.INVALID_CREDENTIALS_EXCEPTIONS
     return {
         "access_token": security.generate_access_token(data.username),

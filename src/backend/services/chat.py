@@ -41,7 +41,7 @@ FALLBACK_ERROR_MESSAGE = (
     "Give it a few seconds and ask me again."
 )
 
-REQUEST_TIMEOUT = httpx.Timeout(getattr(secrets, "OPENROUTER_TIMEOUT", 60.0))
+REQUEST_TIMEOUT = httpx.Timeout(getattr(secrets, "OPEN_ROUTER_TIMEOUT", 60.0))
 
 class ChatService:
 
@@ -84,9 +84,7 @@ class ChatService:
         finally:
             db.close()
 
-    async def _stream_one_model(
-        self, client: httpx.AsyncClient, model: str, messages: List[dict]
-    ) -> AsyncGenerator[str, None]:
+    async def _stream_one_model(self, client: httpx.AsyncClient, model: str, messages: List[dict]) -> AsyncGenerator[str, None]:
 
         headers = {
             "Authorization": f"Bearer {secrets.OPEN_ROUTER_API_KEY}",
@@ -126,10 +124,8 @@ class ChatService:
                 if content:
                     yield content
 
-    async def stream_chat_response(
-        self, session_id: str, message: str, model: Optional[str] = None
-    ) -> AsyncGenerator[str, None]:
-        history = self.get_history(session_id)
+    async def stream_chat_response(self, session_id: str, message: str, model: Optional[str] = None) -> AsyncGenerator[str, None]:
+        history = self.get_history(session_id)[-10:]
         self._save_message(session_id, "user", message)
 
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
@@ -142,7 +138,7 @@ class ChatService:
 
         messages.append({"role": "user", "content": message})
 
-        primary_model = model or getattr(secrets, "OPENROUTER_MODEL", FALLBACK_MODELS[0])
+        primary_model = secrets.OPEN_ROUTER_MODEL
         models_to_try = [primary_model] + [m for m in FALLBACK_MODELS if m != primary_model]
 
         full_reply = ""
@@ -155,7 +151,6 @@ class ChatService:
                             full_reply += chunk
                             yield chunk
 
-                        # If text was produced, we are done
                         if full_reply:
                             break
 
