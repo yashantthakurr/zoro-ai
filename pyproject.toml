@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.0",
-    "fastapi>=0.141.1",
+    "fastapi[standard]>=0.141.1",
     "httpx>=0.28.1",
     "psycopg2-binary>=2.9.13",
     "pwdlib[argon2]>=0.3.1",
