@@ -10,7 +10,7 @@ from utils.navigation import signin_page
 import requests
 import streamlit as st
 
-st.set_page_config(page_title="Zoro AI | Chat", page_icon="⚔️", layout="centered")
+st.set_page_config(page_title="Zoro AI | Chat", page_icon="⚔️")
 
 redirect_if_unauthenticated()
 menu()
@@ -33,7 +33,6 @@ def handle_session_expired():
 if not username or not token:
     handle_session_expired()
 
-SESSION_ID = username
 AUTH_HEADERS = {"Authorization": f"Bearer {token}"}
 
 st.title("Zoro AI | Chat")
@@ -42,7 +41,7 @@ st.divider()
 def load_history() -> List[Dict]:
     try:
         resp = requests.get(
-            f"{CHAT_BASE_URL}/history/{SESSION_ID}",
+            f"{CHAT_BASE_URL}/history",
             headers=AUTH_HEADERS,
             timeout=10,
         )
@@ -64,7 +63,7 @@ def stream_reply(prompt: str):
     with requests.post(
             f"{CHAT_BASE_URL}/send",
             headers=AUTH_HEADERS,
-            json={"session_id": SESSION_ID, "message": prompt},
+            json={"message": prompt},
             stream=True,
             timeout=120,
     ) as resp:
@@ -76,7 +75,7 @@ def stream_reply(prompt: str):
 def clear_conversation():
     try:
         resp = requests.delete(
-            f"{CHAT_BASE_URL}/history/{SESSION_ID}",
+            f"{CHAT_BASE_URL}/history",
             headers=AUTH_HEADERS,
             timeout=10,
         )
@@ -105,7 +104,7 @@ for message in st.session_state.messages:
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
-if prompt := st.chat_input("Say something to Zoro...", max_chars=3000):
+if prompt := st.chat_input("Say something to Zoro..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)

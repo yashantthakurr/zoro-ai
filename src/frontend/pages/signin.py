@@ -1,5 +1,6 @@
 
 from utils.config import API_BASE_URL
+from utils.footer import get_footer
 from utils.menu import redirect_if_authenticated
 from utils.navigation import signup_page, chat_page
 import requests
@@ -53,3 +54,5 @@ st.markdown("Don't have an account?")
 
 if st.button("Signup", type="primary"):
     st.switch_page(signup_page)
+
+get_footer()

@@ -1,5 +1,6 @@
 
 from utils.config import API_BASE_URL
+from utils.footer import get_footer
 from utils.navigation import signin_page
 from utils.menu import (
     menu,
@@ -116,3 +117,5 @@ except requests.exceptions.Timeout:
     st.error("The server took too long to respond. Try again later.")
 except requests.exceptions.ConnectionError:
     st.error("Could not contact the server at the moment. Try again later.")
+
+get_footer()

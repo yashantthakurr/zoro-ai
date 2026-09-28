@@ -5,7 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
-.idea/
+.idea
 
 # Virtual environments
 .venv
@@ -14,7 +14,7 @@ wheels/
 .env
 
 # Mypy cache
-.mypy_cache/
+.mypy_cache
 
 # Server file
 server.py

@@ -1,5 +1,6 @@
 
 from utils.config import API_BASE_URL
+from utils.footer import get_footer
 from utils.menu import redirect_if_authenticated
 from utils.navigation import signin_page
 import requests
@@ -48,3 +49,5 @@ st.markdown("Already have an account?")
 
 if st.button("Signin", type="primary"):
     st.switch_page(signin_page)
+
+get_footer()

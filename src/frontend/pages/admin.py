@@ -1,6 +1,7 @@
 
-from utils.config import API_BASE_URL
 from typing import Dict, List, Optional
+from utils.config import API_BASE_URL
+from utils.footer import get_footer
 from utils.menu import (
     menu,
     redirect_if_not_admin,
@@ -182,3 +183,5 @@ if users is not None:
                     st.warning("That user no longer exists.")
                 else:
                     st.error("Failed to delete user.")
+
+get_footer()

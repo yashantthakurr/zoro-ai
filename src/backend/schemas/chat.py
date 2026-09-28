@@ -13,10 +13,8 @@ class ChatMessageOut(BaseModel):
 
 class ChatRequest(BaseModel):
 
-    session_id: str = Field(...)
     message: str = Field(..., min_length=1, max_length=3000)
 
 class ChatHistoryResponse(BaseModel):
 
-    session_id: str
     messages: List[ChatMessageOut]

@@ -3,7 +3,7 @@ from collections.abc import AsyncGenerator
 from src.backend.constants.config import secrets
 from src.backend.database.session import SessionLocal
 from src.backend.models.chat import ChatMessage
-from typing import List, Optional
+from typing import List
 import httpx
 import json
 import logging
@@ -45,22 +45,22 @@ REQUEST_TIMEOUT = httpx.Timeout(getattr(secrets, "OPEN_ROUTER_TIMEOUT", 60.0))
 
 class ChatService:
 
-    def get_history(self, session_id: str) -> List[ChatMessage]:
+    def get_history(self, user_id: int) -> List[ChatMessage]:
         db = SessionLocal()
         try:
             return (
                 db.query(ChatMessage)
-                .filter(ChatMessage.session_id == session_id)
+                .filter(ChatMessage.user_id == user_id)
                 .order_by(ChatMessage.created_at.asc())
                 .all()
             )
         finally:
             db.close()
 
-    def _save_message(self, session_id: str, role: str, content: str) -> None:
+    def _save_message(self, user_id: int, role: str, content: str) -> None:
         db = SessionLocal()
         try:
-            db.add(ChatMessage(session_id=session_id, role=role, content=content))
+            db.add(ChatMessage(user_id=user_id, role=role, content=content))
             db.commit()
         except Exception:
             db.rollback()
@@ -68,12 +68,12 @@ class ChatService:
         finally:
             db.close()
 
-    def clear_history(self, session_id: str) -> int:
+    def clear_history(self, user_id: int) -> int:
         db = SessionLocal()
         try:
             deleted = (
                 db.query(ChatMessage)
-                .filter(ChatMessage.session_id == session_id)
+                .filter(ChatMessage.user_id == user_id)
                 .delete()
             )
             db.commit()
@@ -84,7 +84,9 @@ class ChatService:
         finally:
             db.close()
 
-    async def _stream_one_model(self, client: httpx.AsyncClient, model: str, messages: List[dict]) -> AsyncGenerator[str, None]:
+    async def _stream_one_model(
+            self, client: httpx.AsyncClient, model: str, messages: List[dict]
+    ) -> AsyncGenerator[str, None]:
 
         headers = {
             "Authorization": f"Bearer {secrets.OPEN_ROUTER_API_KEY}",
@@ -124,9 +126,9 @@ class ChatService:
                 if content:
                     yield content
 
-    async def stream_chat_response(self, session_id: str, message: str, model: Optional[str] = None) -> AsyncGenerator[str, None]:
-        history = self.get_history(session_id)[-10:]
-        self._save_message(session_id, "user", message)
+    async def stream_chat_response(self, user_id: int, message: str) -> AsyncGenerator[str, None]:
+        history = self.get_history(user_id)[-10:]
+        self._save_message(user_id, "user", message)
 
         messages = [{"role": "system", "content": SYSTEM_INSTRUCTION}]
 
@@ -167,6 +169,6 @@ class ChatService:
 
         finally:
             if full_reply:
-                self._save_message(session_id, "assistant", full_reply)
+                self._save_message(user_id, "assistant", full_reply)
 
 chat_service = ChatService()

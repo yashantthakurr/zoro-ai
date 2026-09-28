@@ -1,6 +1,7 @@
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from src.backend.constants import naming
@@ -32,6 +33,10 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+app.add_middleware(
+    CORSMiddleware,
+)
 
 @app.get("/", response_model=None, tags=["Public Routes"])
 async def read_root() -> Dict[str, str]:

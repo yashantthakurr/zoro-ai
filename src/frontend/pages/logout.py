@@ -4,6 +4,7 @@ from utils.menu import (
     redirect_if_unauthenticated
 )
 from utils.navigation import landing_page
+from utils.footer import get_footer
 import streamlit as st
 import time
 
@@ -26,3 +27,5 @@ if st.button("Logout", type="primary", width="stretch"):
     time.sleep(1)
 
     st.switch_page(landing_page)
+
+get_footer()
