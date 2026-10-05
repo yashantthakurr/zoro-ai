@@ -5,6 +5,7 @@ build/
 dist/
 wheels/
 *.egg-info
+.idea/
 
 # Virtual environments
 .venv
@@ -14,3 +15,10 @@ wheels/
 
 # Mypy cache
 .mypy_cache
+
+# FastAPI Cloud
+.fastapicloud
+.fastapicloudignore
+
+# Local server file
+server.py
